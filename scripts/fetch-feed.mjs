@@ -23,6 +23,20 @@ const sources = [
     url: 'https://cssnectar.com/',
     fetchItems: fetchCssNectarItems,
   },
+  {
+    name: 'CSS Design Awards',
+    method: '公开获奖与提名页',
+    tone: 'lime',
+    url: 'https://www.cssdesignawards.com/',
+    fetchItems: fetchCssDesignAwardsItems,
+  },
+  {
+    name: 'CSS Winner',
+    method: '公开获奖页',
+    tone: 'coral',
+    url: 'https://www.csswinner.com/winners',
+    fetchItems: fetchCssWinnerItems,
+  },
 ]
 
 function decode(value = '') {
@@ -32,9 +46,39 @@ function decode(value = '') {
     .replace(/&quot;/g, '"')
     .replace(/&#8217;/g, "'")
     .replace(/&#8211;/g, '-')
+    .replace(/&#8212;/g, '-')
+    .replace(/&#39;/g, "'")
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .trim()
+}
+
+function stripTags(value = '') {
+  return decode(value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' '))
+}
+
+function attribute(html, name) {
+  const match = html.match(new RegExp(`\\b${name}\\s*=\\s*(["'])(.*?)\\1`, 'i'))
+  return decode(match?.[2] ?? '')
+}
+
+function absoluteUrl(url, base) {
+  if (!url) return ''
+  try {
+    return new URL(url, base).href
+  } catch {
+    return ''
+  }
+}
+
+function dateFromMonthDay(monthToken, dayToken, yearToken) {
+  const month = new Date(`${monthToken} 1, 2000`).getUTCMonth()
+  const day = Number(dayToken)
+  const year = Number(yearToken)
+  if (Number.isNaN(month) || !Number.isInteger(day) || !Number.isInteger(year)) return ''
+  const parsed = new Date(Date.UTC(year, month, day))
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month || parsed.getUTCDate() !== day) return ''
+  return parsed.toISOString().slice(0, 10)
 }
 
 function xmlTag(xml, tag) {
@@ -198,6 +242,85 @@ async function fetchCssNectarItems() {
   })
 }
 
+async function fetchCssDesignAwardsItems() {
+  const html = await getPublic('https://www.cssdesignawards.com/')
+  const articles = html.match(/<article\b[\s\S]*?<\/article>/gi) ?? []
+  const entries = articles.flatMap((article, index) => {
+    if (!/sp__meta__category/.test(article)) return []
+    const imageTag = article.match(/<img\b[^>]+alt=["'][^"']+ website["'][^>]*>/i)?.[0] ?? ''
+    const image = absoluteUrl(attribute(imageTag, 'src'), 'https://www.cssdesignawards.com/')
+    const title = stripTags(article.match(/<h3\b[^>]*>[\s\S]*?<\/h3>/i)?.[0] ?? '')
+    const detailPath = article.match(/href=["'](\/sites\/[^"']+)["']/i)?.[1] ?? ''
+    const dateText = stripTags(article.match(/sp__meta__date[^>]*>([\s\S]*?)<\/span>/i)?.[1] ?? '')
+    const imageYear = image.match(/\/cdasites\/(20\d{2})\//)?.[1] ?? ''
+    const [, month, day] = dateText.match(/^([A-Z]{3})\s+(\d{1,2})$/i) ?? []
+    const date = dateFromMonthDay(month, day, imageYear)
+    const detailUrl = absoluteUrl(detailPath, 'https://www.cssdesignawards.com/')
+    if (!title || !image || !detailUrl || !date) return []
+    const id = detailUrl.match(/\/(\d+)\/?$/)?.[1] ?? encodeURIComponent(detailUrl)
+    return [{
+      id: `cssda-${id}`,
+      title,
+      date,
+      url: detailUrl,
+      image,
+      sourceUrl: detailUrl,
+      source: 'CSS Design Awards',
+      channel: '设计奖项',
+      accent: '#809546',
+      aspect: index % 3 === 1 ? 'portrait' : 'wide',
+    }]
+  })
+  return [...new Map(entries.map((item) => [item.id, item])).values()]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6)
+}
+
+async function fetchCssWinnerItems() {
+  const html = await getPublic('https://www.csswinner.com/winners')
+  const figures = html.match(/<figure\b[\s\S]*?<\/figure>/gi) ?? []
+  const entries = figures.flatMap((figure, index) => {
+    const detailUrl = figure.match(/href=["'](https:\/\/www\.csswinner\.com\/details\/[^"']+)["']/i)?.[1] ?? ''
+    const dateText = stripTags(figure.match(/<span>(SOTD\s+\d{1,2}\s+[A-Za-z]{3}\s+20\d{2})<\/span>/i)?.[1] ?? '')
+    const imageTag = figure.match(/<img\b[^>]+>/i)?.[0] ?? ''
+    const image = attribute(imageTag, 'src')
+    const title = attribute(imageTag, 'alt')
+    const [, day, month, year] = dateText.match(/^SOTD\s+(\d{1,2})\s+([A-Za-z]{3})\s+(20\d{2})$/i) ?? []
+    const date = dateFromMonthDay(month, day, year)
+    if (!title || !image || !detailUrl || !date) return []
+    const id = detailUrl.match(/\/(\d+)\/?$/)?.[1] ?? encodeURIComponent(detailUrl)
+    return [{
+      id: `css-winner-${id}`,
+      title,
+      date,
+      url: detailUrl,
+      image,
+      sourceUrl: detailUrl,
+      source: 'CSS Winner',
+      channel: '设计奖项',
+      accent: '#d96b51',
+      aspect: index % 3 === 2 ? 'square' : 'wide',
+    }]
+  })
+  return [...new Map(entries.map((item) => [item.id, item])).values()]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6)
+}
+
+function previousItemsFrom(moduleSource) {
+  const marker = 'export const items: DesignItem[] = '
+  const start = moduleSource.indexOf(marker)
+  if (start < 0) return []
+  const json = balancedJson(moduleSource, start + marker.length)
+  if (!json) return []
+  try {
+    const parsed = JSON.parse(json)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 function renderModule({ items, statuses, fetchedAt, newItemCount }) {
   const meta = {
     fetchedAt: fetchedAt.toISOString(),
@@ -211,7 +334,8 @@ function renderModule({ items, statuses, fetchedAt, newItemCount }) {
 
 async function main() {
   const previous = await readFile(outputFile, 'utf8').catch(() => '')
-  const knownIds = new Set([...previous.matchAll(/["']id["']\s*:\s*["']([^"']+)["']/g)].map((match) => match[1]))
+  const previousItems = previousItemsFrom(previous)
+  const knownIds = new Set(previousItems.map((item) => item.id))
   const results = await Promise.allSettled(sources.map((source) => source.fetchItems()))
   const statuses = sources.map((source, index) => ({
     name: source.name,
@@ -225,7 +349,11 @@ async function main() {
     if (result.status === 'rejected') console.warn(`${sources[index].name}: ${result.reason.message}`)
     if (result.status === 'fulfilled' && !result.value.length) console.warn(`${sources[index].name}: no usable public entries found`)
   })
-  const freshItems = results.flatMap((result) => result.status === 'fulfilled' ? result.value : [])
+  const freshItems = results.flatMap((result, index) => {
+    if (result.status === 'fulfilled') return result.value
+    // Keep the last verified records for an individual source if its public page is temporarily unavailable.
+    return previousItems.filter((item) => item.source === sources[index].name)
+  })
   if (!freshItems.length) throw new Error('No approved source returned usable items; the existing snapshot was kept.')
 
   const items = freshItems
