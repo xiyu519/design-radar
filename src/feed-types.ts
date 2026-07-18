@@ -1,4 +1,4 @@
-export type SourceName = 'The FWA' | 'CSS Nectar'
+export type SourceName = 'The FWA' | 'CSS Nectar' | 'CSS Design Awards' | 'CSS Winner'
 
 export type Channel = '全部' | '设计奖项' | '精选网站'
 
