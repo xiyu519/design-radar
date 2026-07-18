@@ -10,7 +10,7 @@
 - 卡片时间代表来源可靠的收录/奖项日期；无法取得可靠日期时，应标为首次发现日期。
 - 同步失败不会覆盖上一次成功的 `src/generated-feed.ts` 快照。
 
-当前已接入：The FWA 公开首页。CSS Nectar 的公开 RSS 已预留适配器，只有实际同步成功后才会在页面显示为“已接入”。
+当前同步器已具备四个公开来源适配器：The FWA 公开首页、CSS Nectar 公开 RSS、CSS Design Awards 公开获奖与提名页、CSS Winner 公开获奖页。页面只会把本次实际解析成功的来源标为“已接入”；某个来源临时失败时，会保留该来源上一次成功的作品快照并如实显示失败状态。
 
 ## 本地运行
 
@@ -28,6 +28,6 @@ npm run fetch:feed
 npm run build
 ```
 
-`npm run fetch:feed` 只读取 The FWA 的公开首页与 CSS Nectar 的公开 RSS，最多写入 12 个近期作品。同步器带有明确 User-Agent、20 秒超时和失败保留策略。请在发布前将脚本中的 GitHub 地址替换为自己的仓库地址。
+`npm run fetch:feed` 低频读取四个已验证的公开入口，最多写入 12 个近期作品。同步器带有明确 User-Agent、20 秒超时和按来源保留快照的失败策略。请在发布前将脚本中的 GitHub 地址替换为自己的仓库地址。
 
 仓库包含 GitHub Actions 定时任务，每日 09:17（北京时间附近，取决于夏令时无关的 UTC 计算）刷新静态快照并提交更新。可在 Actions 页面手动执行 `Refresh public design feed`。
