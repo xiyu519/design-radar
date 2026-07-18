@@ -1,0 +1,29 @@
+name: Refresh public design feed
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 1 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run fetch:feed
+      - run: npm run build
+      - name: Commit refreshed snapshot
+        run: |
+          git config user.name "design-radar-bot"
+          git config user.email "design-radar-bot@users.noreply.github.com"
+          git add src/generated-feed.ts
+          git diff --cached --quiet || git commit -m "chore: refresh public design feed"
+          git push
