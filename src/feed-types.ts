@@ -1,6 +1,8 @@
-export type SourceName = 'The FWA' | 'CSS Nectar' | 'CSS Design Awards' | 'CSS Winner'
+export type SourceName = string
 
-export type Channel = '全部' | '设计奖项' | '精选网站'
+export type Channel = '全部' | '设计奖项' | '精选网站' | '灵感文章'
+
+export type SourceCategory = '作品库' | '设计媒体' | 'UX 研究' | '品牌视觉'
 
 export type DesignItem = {
   id: string
@@ -24,6 +26,9 @@ export type SourceStatus = {
   tone: 'lime' | 'blue' | 'coral' | 'ink'
   url: string
   active: boolean
+  category?: SourceCategory
+  lastCheckedAt?: string
+  lastSuccessAt?: string | null
 }
 
 export type FeedMeta = {
