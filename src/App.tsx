@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { ArrowUpRight, Check, ChevronDown, Command, Menu, Search, Sparkles, X } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronDown, Clock3, Command, Layers3, Menu, Radio, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { channels, feedMeta, items, sourceStatus, type Channel, type DesignItem } from './data'
+import { getSourceProfile, sourceCategoryFilters, type SourceCategoryFilter } from './source-catalog'
 
 function ItemCard({ item, index }: { item: DesignItem; index: number }) {
   return (
@@ -28,6 +29,20 @@ function ItemCard({ item, index }: { item: DesignItem; index: number }) {
   )
 }
 
+function formatSourceTime(value?: string | null, hasSnapshot = false) {
+  if (!value) return hasSnapshot ? '历史快照' : '尚未成功同步'
+  const date = new Date(value)
+  if (Number.isNaN(date.valueOf())) return '等待下一轮验证'
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Shanghai',
+  }).format(date)
+}
+
 export default function App() {
   const [channel, setChannel] = useState<Channel>('全部')
   const [isSourceOpen, setIsSourceOpen] = useState(false)
@@ -36,6 +51,7 @@ export default function App() {
   const [scrollY, setScrollY] = useState(0)
   const [query, setQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [sourceCategory, setSourceCategory] = useState<SourceCategoryFilter>('全部来源')
 
   useEffect(() => {
     let frame = 0
@@ -53,15 +69,26 @@ export default function App() {
   const visibleItems = useMemo(
     () => items.filter((item) => {
       const matchesChannel = channel === '全部' || item.channel === channel
+      const matchesSourceCategory = sourceCategory === '全部来源'
+        || getSourceProfile(item.source).category === sourceCategory
       const normalizedQuery = query.trim().toLowerCase()
       const matchesQuery = !normalizedQuery
         || item.title.toLowerCase().includes(normalizedQuery)
         || item.source.toLowerCase().includes(normalizedQuery)
-      return matchesChannel && matchesQuery
+      return matchesChannel && matchesSourceCategory && matchesQuery
     }),
-    [channel, query],
+    [channel, query, sourceCategory],
   )
   const freshCount = items.filter((item) => item.fresh).length
+  const filteredSources = useMemo(
+    () => sourceStatus.filter((source) => sourceCategory === '全部来源' || getSourceProfile(source.name).category === sourceCategory),
+    [sourceCategory],
+  )
+  const sourceCategoryCounts = useMemo(() => sourceStatus.reduce<Record<string, number>>((counts, source) => {
+    const category = getSourceProfile(source.name).category
+    counts[category] = (counts[category] ?? 0) + 1
+    return counts
+  }, {}), [])
 
   return (
     <main className="app-shell">
@@ -74,7 +101,7 @@ export default function App() {
         <div className="nav-center">
           <button className="source-control" onClick={() => setIsSourceOpen(!isSourceOpen)} aria-expanded={isSourceOpen} aria-controls="source-status">
             <span className="pulse-dot" />
-            <span>{feedMeta.activeSourceCount} 个已接入来源</span>
+            <span>{feedMeta.activeSourceCount} 个已展示来源</span>
             <ChevronDown size={15} />
           </button>
           {isSourceOpen && (
@@ -83,11 +110,11 @@ export default function App() {
               {sourceStatus.map((source) => (
                 <div className="source-row" key={source.name}>
                   <span className={`status-dot status-dot--${source.tone}`} />
-                  <span>{source.name}</span>
-                  <small>{source.state} / {source.method}</small>
+                  <span>{source.name}<small>{getSourceProfile(source.name).category}</small></span>
+                  <small>{source.state}</small>
                 </div>
               ))}
-              <div className="source-foot">{feedMeta.note} 只使用公开、尊重权限的数据来源。</div>
+              <div className="source-foot">{feedMeta.note} 只使用公开入口，所有卡片均回跳原站。</div>
             </div>
           )}
         </div>
@@ -148,7 +175,7 @@ export default function App() {
         <header className="feed-head">
           <div className="feed-title-row">
             <p className="section-kicker">正在发生的设计</p>
-            <span className="result-count">{visibleItems.length} 个作品</span>
+            <span className="result-count">{visibleItems.length} 个作品 / {sourceCategory}</span>
           </div>
           <div className="filter-row" aria-label="筛选作品">
             <div className="channel-tabs">
@@ -167,6 +194,21 @@ export default function App() {
               {query && <button type="button" aria-label="清除搜索" title="清除搜索" onClick={() => setQuery('')}><X size={14} /></button>}
             </label>
           </div>
+          <div className="source-filter-row" aria-label="按来源类别筛选">
+            <span><Layers3 size={13} /> 灵感类型</span>
+            <div className="source-category-tabs">
+              {sourceCategoryFilters.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => setSourceCategory(name)}
+                  className={sourceCategory === name ? 'active' : ''}
+                >
+                  {name}
+                  <em>{name === '全部来源' ? sourceStatus.length : sourceCategoryCounts[name] ?? 0}</em>
+                </button>
+              ))}
+            </div>
+          </div>
         </header>
 
         {visibleItems.length ? (
@@ -180,19 +222,38 @@ export default function App() {
 
       <section className="sources-section" id="sources">
         <div className="sources-heading">
-          <p className="section-kicker">灵感信号</p>
-          <h2>好设计的来源，<br />清晰可见。</h2>
+          <p className="section-kicker"><Radio size={13} /> 灵感信号</p>
+          <h2>来源不是黑箱。<br /><i>状态</i> 清晰可见。</h2>
+          <p className="sources-copy">已展示来源指本次或历史快照中已有可展示条目的来源；候选来源仅表示已配置公开入口，成功解析出条目后才会进入作品流。</p>
+          <div className="source-summary">
+            <span><b>{feedMeta.activeSourceCount}</b> 已展示来源</span>
+            <span><b>{sourceStatus.length}</b> 已配置候选</span>
+            <span><b>{Object.keys(sourceCategoryCounts).length}</b> 内容类别</span>
+          </div>
         </div>
-        <div className="sources-list">
-          {sourceStatus.map((source, index) => (
-            <a className="source-line" key={source.name} href={source.url} target="_blank" rel="noreferrer" aria-label={`打开 ${source.name} 来源主页`}>
-              <span className="line-number">0{index + 1}</span>
-              <span className={`status-dot status-dot--${source.tone}`} />
-              <strong>{source.name}</strong>
-              <span>{source.state} / {source.method}</span>
-              <ArrowUpRight size={17} />
-            </a>
-          ))}
+        <div className="source-console">
+          <div className="source-console-head">
+            <span>来源档案</span>
+            <span>最后成功同步</span>
+            <span>接入状态</span>
+          </div>
+          <div className="sources-list">
+            {filteredSources.map((source, index) => {
+              const profile = getSourceProfile(source.name)
+              return (
+                <a className="source-line" key={source.name} href={source.url} target="_blank" rel="noreferrer" aria-label={`打开 ${source.name} 来源主页`}>
+                  <span className="line-number">{String(index + 1).padStart(2, '0')}</span>
+                  <span className={`status-dot status-dot--${source.tone}`} />
+                  <span className="source-identity"><strong>{source.name}</strong><small>{profile.category} / {profile.focus}</small></span>
+                  <span className="source-time"><Clock3 size={13} /> {formatSourceTime(source.lastSuccessAt, source.active)}</span>
+                  <span className={`source-state ${source.active ? 'is-active' : ''}`}>{source.state}</span>
+                  <ArrowUpRight size={17} />
+                  <span className="source-policy"><ShieldCheck size={12} /> {profile.policy}</span>
+                </a>
+              )
+            })}
+          </div>
+          <p className="source-console-note">“待首次验证 / 待首次抓取验证”均表示公开入口已配置，但尚未成功解析出可展示条目。</p>
         </div>
       </section>
 
