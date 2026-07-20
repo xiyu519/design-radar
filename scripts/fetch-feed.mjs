@@ -5,8 +5,38 @@ import { promisify } from 'node:util'
 
 const root = process.cwd()
 const outputFile = resolve(root, 'src/generated-feed.ts')
-const userAgent = 'Design-Radar/0.1 (+https://github.com/your-name/design-radar; public-feed-refresh)'
+const userAgent = 'Design-Radar/0.1 (+https://github.com/xiyu519/design-radar; public-feed-refresh)'
 const execFileAsync = promisify(execFile)
+
+const sourceCategories = {
+  'The FWA': '作品库',
+  'CSS Nectar': '作品库',
+  'CSS Design Awards': '作品库',
+  'CSS Winner': '作品库',
+  'One Page Love': '作品库',
+  SiteInspire: '作品库',
+  Codrops: '设计媒体',
+  'Smashing Magazine': '设计媒体',
+  'Webdesigner Depot': '设计媒体',
+  Designmodo: '设计媒体',
+  'CSS-Tricks': '设计媒体',
+  'A List Apart': '设计媒体',
+  'Creative Boom': '设计媒体',
+  Abduzeedo: '设计媒体',
+  'Awwwards Blog': '设计媒体',
+  Designboom: '设计媒体',
+  "It's Nice That": '设计媒体',
+  'Creative Bloq': '设计媒体',
+  'UX Collective': 'UX 研究',
+  'UX Planet': 'UX 研究',
+  'UX Booth': 'UX 研究',
+  'Nielsen Norman Group': 'UX 研究',
+  'Webflow Blog': 'UX 研究',
+  'Figma Blog': 'UX 研究',
+  'Brand New': '品牌视觉',
+  'Design Milk': '品牌视觉',
+  Colossal: '品牌视觉',
+}
 
 const sources = [
   {
@@ -36,6 +66,305 @@ const sources = [
     tone: 'coral',
     url: 'https://www.csswinner.com/winners',
     fetchItems: fetchCssWinnerItems,
+  },
+  {
+    name: 'One Page Love',
+    method: '公开 RSS',
+    tone: 'coral',
+    url: 'https://onepagelove.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'One Page Love',
+      feedUrl: 'https://onepagelove.com/feed',
+      sourceUrl: 'https://onepagelove.com/',
+      channel: '精选网站',
+      accent: '#d96b51',
+    }),
+  },
+  {
+    name: 'Codrops',
+    method: '公开 RSS',
+    tone: 'blue',
+    url: 'https://tympanus.net/codrops/',
+    fetchItems: () => fetchRssItems({
+      name: 'Codrops',
+      feedUrl: 'https://tympanus.net/codrops/feed/',
+      sourceUrl: 'https://tympanus.net/codrops/',
+      channel: '灵感文章',
+      accent: '#306f70',
+    }),
+  },
+  {
+    name: 'Smashing Magazine',
+    method: '公开 RSS',
+    tone: 'ink',
+    url: 'https://www.smashingmagazine.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Smashing Magazine',
+      feedUrl: 'https://www.smashingmagazine.com/feed/',
+      sourceUrl: 'https://www.smashingmagazine.com/',
+      channel: '灵感文章',
+      accent: '#171716',
+    }),
+  },
+  {
+    name: 'Webdesigner Depot',
+    method: '公开 RSS',
+    tone: 'lime',
+    url: 'https://www.webdesignerdepot.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Webdesigner Depot',
+      feedUrl: 'https://www.webdesignerdepot.com/feed/',
+      sourceUrl: 'https://www.webdesignerdepot.com/',
+      channel: '灵感文章',
+      accent: '#809546',
+    }),
+  },
+  {
+    name: 'Designmodo',
+    method: '公开 RSS',
+    tone: 'coral',
+    url: 'https://designmodo.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Designmodo',
+      feedUrl: 'https://designmodo.com/feed/',
+      sourceUrl: 'https://designmodo.com/',
+      channel: '灵感文章',
+      accent: '#d96b51',
+    }),
+  },
+  {
+    name: 'CSS-Tricks',
+    method: '公开 RSS',
+    tone: 'blue',
+    url: 'https://css-tricks.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'CSS-Tricks',
+      feedUrl: 'https://css-tricks.com/feed/',
+      sourceUrl: 'https://css-tricks.com/',
+      channel: '灵感文章',
+      accent: '#306f70',
+    }),
+  },
+  {
+    name: 'A List Apart',
+    method: '公开 RSS',
+    tone: 'ink',
+    url: 'https://alistapart.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'A List Apart',
+      feedUrl: 'https://alistapart.com/main/feed/',
+      sourceUrl: 'https://alistapart.com/',
+      channel: '灵感文章',
+      accent: '#171716',
+    }),
+  },
+  {
+    name: 'Creative Boom',
+    method: '公开 RSS',
+    tone: 'coral',
+    url: 'https://www.creativeboom.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Creative Boom',
+      feedUrl: 'https://www.creativeboom.com/feed/',
+      sourceUrl: 'https://www.creativeboom.com/',
+      channel: '灵感文章',
+      accent: '#d96b51',
+    }),
+  },
+  {
+    name: 'UX Collective',
+    method: '公开 RSS',
+    tone: 'lime',
+    url: 'https://uxdesign.cc/',
+    fetchItems: () => fetchRssItems({
+      name: 'UX Collective',
+      feedUrl: 'https://uxdesign.cc/feed',
+      sourceUrl: 'https://uxdesign.cc/',
+      channel: '灵感文章',
+      accent: '#809546',
+    }),
+  },
+  {
+    name: 'UX Planet',
+    method: '公开 RSS',
+    tone: 'blue',
+    url: 'https://uxplanet.org/',
+    fetchItems: () => fetchRssItems({
+      name: 'UX Planet',
+      feedUrl: 'https://uxplanet.org/feed',
+      sourceUrl: 'https://uxplanet.org/',
+      channel: '灵感文章',
+      accent: '#306f70',
+    }),
+  },
+  {
+    name: 'Abduzeedo',
+    method: '公开 RSS',
+    tone: 'ink',
+    url: 'https://abduzeedo.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Abduzeedo',
+      feedUrl: 'https://abduzeedo.com/rss.xml',
+      sourceUrl: 'https://abduzeedo.com/',
+      channel: '灵感文章',
+      accent: '#171716',
+    }),
+  },
+  {
+    name: 'SiteInspire',
+    method: '公开 RSS',
+    tone: 'blue',
+    url: 'https://www.siteinspire.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'SiteInspire',
+      feedUrl: 'https://www.siteinspire.com/feed',
+      sourceUrl: 'https://www.siteinspire.com/',
+      channel: '精选网站',
+      accent: '#306f70',
+    }),
+  },
+  {
+    name: 'Awwwards Blog',
+    method: '公开 RSS',
+    tone: 'lime',
+    url: 'https://www.awwwards.com/blog/',
+    fetchItems: () => fetchRssItems({
+      name: 'Awwwards Blog',
+      feedUrl: 'https://www.awwwards.com/blog/feed/',
+      sourceUrl: 'https://www.awwwards.com/blog/',
+      channel: '灵感文章',
+      accent: '#809546',
+    }),
+  },
+  {
+    name: 'Designboom',
+    method: '公开 RSS',
+    tone: 'coral',
+    url: 'https://www.designboom.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Designboom',
+      feedUrl: 'https://www.designboom.com/feed/',
+      sourceUrl: 'https://www.designboom.com/',
+      channel: '灵感文章',
+      accent: '#d96b51',
+    }),
+  },
+  {
+    name: "It's Nice That",
+    method: '公开 RSS',
+    tone: 'ink',
+    url: 'https://www.itsnicethat.com/',
+    fetchItems: () => fetchRssItems({
+      name: "It's Nice That",
+      feedUrl: 'https://www.itsnicethat.com/rss',
+      sourceUrl: 'https://www.itsnicethat.com/',
+      channel: '灵感文章',
+      accent: '#171716',
+    }),
+  },
+  {
+    name: 'Creative Bloq',
+    method: '公开 RSS',
+    tone: 'blue',
+    url: 'https://www.creativebloq.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Creative Bloq',
+      feedUrl: 'https://www.creativebloq.com/rss',
+      sourceUrl: 'https://www.creativebloq.com/',
+      channel: '灵感文章',
+      accent: '#306f70',
+    }),
+  },
+  {
+    name: 'Brand New',
+    method: '公开 RSS',
+    tone: 'coral',
+    url: 'https://www.underconsideration.com/brandnew/',
+    fetchItems: () => fetchRssItems({
+      name: 'Brand New',
+      feedUrl: 'https://www.underconsideration.com/brandnew/rss.php',
+      sourceUrl: 'https://www.underconsideration.com/brandnew/',
+      channel: '灵感文章',
+      accent: '#d96b51',
+    }),
+  },
+  {
+    name: 'Design Milk',
+    method: '公开 RSS',
+    tone: 'lime',
+    url: 'https://design-milk.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Design Milk',
+      feedUrl: 'https://design-milk.com/feed/',
+      sourceUrl: 'https://design-milk.com/',
+      channel: '灵感文章',
+      accent: '#809546',
+    }),
+  },
+  {
+    name: 'Colossal',
+    method: '公开 RSS',
+    tone: 'ink',
+    url: 'https://www.thisiscolossal.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Colossal',
+      feedUrl: 'https://www.thisiscolossal.com/feed/',
+      sourceUrl: 'https://www.thisiscolossal.com/',
+      channel: '灵感文章',
+      accent: '#171716',
+    }),
+  },
+  {
+    name: 'UX Booth',
+    method: '公开 RSS',
+    tone: 'blue',
+    url: 'https://www.uxbooth.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'UX Booth',
+      feedUrl: 'https://www.uxbooth.com/feed/',
+      sourceUrl: 'https://www.uxbooth.com/',
+      channel: '灵感文章',
+      accent: '#306f70',
+    }),
+  },
+  {
+    name: 'Nielsen Norman Group',
+    method: '公开 RSS',
+    tone: 'coral',
+    url: 'https://www.nngroup.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Nielsen Norman Group',
+      feedUrl: 'https://www.nngroup.com/feed/rss/',
+      sourceUrl: 'https://www.nngroup.com/',
+      channel: '灵感文章',
+      accent: '#d96b51',
+    }),
+  },
+  {
+    name: 'Webflow Blog',
+    method: '公开 RSS',
+    tone: 'lime',
+    url: 'https://webflow.com/blog',
+    fetchItems: () => fetchRssItems({
+      name: 'Webflow Blog',
+      feedUrl: 'https://webflow.com/blog/rss.xml',
+      sourceUrl: 'https://webflow.com/blog',
+      channel: '灵感文章',
+      accent: '#809546',
+    }),
+  },
+  {
+    name: 'Figma Blog',
+    method: '公开 RSS',
+    tone: 'ink',
+    url: 'https://www.figma.com/blog/',
+    fetchItems: () => fetchRssItems({
+      name: 'Figma Blog',
+      feedUrl: 'https://www.figma.com/blog/rss.xml',
+      sourceUrl: 'https://www.figma.com/blog/',
+      channel: '灵感文章',
+      accent: '#171716',
+    }),
   },
 ]
 
@@ -227,18 +556,50 @@ async function fetchFwaItems() {
 }
 
 async function fetchCssNectarItems() {
-  const rss = await getPublic('https://cssnectar.com/feed/')
-  const entries = rss.match(/<item>[\s\S]*?<\/item>/gi) ?? []
+  return fetchRssItems({
+    name: 'CSS Nectar',
+    feedUrl: 'https://cssnectar.com/feed/',
+    sourceUrl: 'https://cssnectar.com/',
+    channel: '精选网站',
+    accent: '#d96b51',
+  })
+}
+
+function rssImageCandidates(entry) {
+  const tagUrls = [...entry.matchAll(/<(?:media:content|media:thumbnail|enclosure|image)\b[^>]+\b(?:url|href)=["']([^"']+)["']/gi)]
+    .map((match) => decode(match[1]))
+  const imageUrls = [...entry.matchAll(/<(?:img|source)\b[^>]+\b(?:src|srcset)=["']([^"'\s,]+)["']/gi)]
+    .map((match) => decode(match[1]))
+  return [...new Set([...tagUrls, ...imageUrls])]
+}
+
+function usableImage(url) {
+  return url && !/\.(?:mp4|webm|mov)(?:[?#]|$)/i.test(url)
+}
+
+async function fetchRssItems({ name, feedUrl, sourceUrl, channel, accent }) {
+  const rss = await getPublic(feedUrl)
+  const entries = rss.match(/<(?:item|entry)(?:\s[^>]*)?>[\s\S]*?<\/(?:item|entry)>/gi) ?? []
   return entries.slice(0, 8).flatMap((entry, index) => {
     const title = xmlTag(entry, 'title')
-    const url = xmlTag(entry, 'link')
-    const published = Date.parse(xmlTag(entry, 'pubDate'))
-    const image = entry.match(/<(?:media:content|enclosure)[^>]+url=["']([^"']+)["']/i)?.[1]
-      ?? entry.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]
-      ?? ''
+    const linkTag = entry.match(/<link\b[^>]*>/i)?.[0] ?? ''
+    const url = xmlTag(entry, 'link') || attribute(linkTag, 'href')
+    const published = Date.parse(xmlTag(entry, 'pubDate') || xmlTag(entry, 'published') || xmlTag(entry, 'updated'))
+    const image = rssImageCandidates(entry).find(usableImage) ?? ''
     if (!title || !url || !image || Number.isNaN(published)) return []
     const date = new Date(published).toISOString().slice(0, 10)
-    return [{ id: `css-nectar-${encodeURIComponent(url)}`, title, date, url, image: decode(image), sourceUrl: url, source: 'CSS Nectar', channel: '精选网站', accent: '#d96b51', aspect: index % 3 === 0 ? 'portrait' : 'square' }]
+    return [{
+      id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${encodeURIComponent(url)}`,
+      title,
+      date,
+      url,
+      image,
+      sourceUrl,
+      source: name,
+      channel,
+      accent,
+      aspect: index % 3 === 0 ? 'portrait' : 'square',
+    }]
   })
 }
 
@@ -335,15 +696,23 @@ function renderModule({ items, statuses, fetchedAt, newItemCount }) {
 async function main() {
   const previous = await readFile(outputFile, 'utf8').catch(() => '')
   const previousItems = previousItemsFrom(previous)
+  const previousStatus = previousSourceStatusFrom(previous)
   const knownIds = new Set(previousItems.map((item) => item.id))
   const results = await Promise.allSettled(sources.map((source) => source.fetchItems()))
+  const fetchedAt = new Date()
   const statuses = sources.map((source, index) => ({
     name: source.name,
-    state: results[index].status === 'fulfilled' && results[index].value.length ? '已接入' : '同步失败，保留快照',
+    state: sourceState({ source, result: results[index], previousItems, previousStatus }),
     method: source.method,
     tone: source.tone,
     url: source.url,
-    active: results[index].status === 'fulfilled' && results[index].value.length > 0,
+    category: sourceCategories[source.name] ?? '设计媒体',
+    lastCheckedAt: fetchedAt.toISOString(),
+    lastSuccessAt: results[index].status === 'fulfilled' && results[index].value.length
+      ? fetchedAt.toISOString()
+      : previousStatus.get(source.name)?.lastSuccessAt ?? null,
+    active: (results[index].status === 'fulfilled' && results[index].value.length > 0)
+      || hasUsablePreviousSnapshot(source.name, previousItems),
   }))
   results.forEach((result, index) => {
     if (result.status === 'rejected') console.warn(`${sources[index].name}: ${result.reason.message}`)
@@ -352,17 +721,42 @@ async function main() {
   const freshItems = results.flatMap((result, index) => {
     if (result.status === 'fulfilled') return result.value
     // Keep the last verified records for an individual source if its public page is temporarily unavailable.
-    return previousItems.filter((item) => item.source === sources[index].name)
+    return previousItems.filter((item) => item.source === sources[index].name && usableImage(item.image))
   })
   if (!freshItems.length) throw new Error('No approved source returned usable items; the existing snapshot was kept.')
 
   const items = freshItems
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 12)
+    .slice(0, 24)
     .map((item) => ({ ...item, dateLabel: dateLabel(item.date), fresh: !knownIds.has(item.id) }))
   const newItemCount = items.filter((item) => item.fresh).length
-  await writeFile(outputFile, renderModule({ items, statuses, fetchedAt: new Date(), newItemCount }))
+  await writeFile(outputFile, renderModule({ items, statuses, fetchedAt, newItemCount }))
   console.log(`Updated ${items.length} items from ${statuses.filter((source) => source.active).length} public source(s).`)
+}
+
+function previousSourceStatusFrom(moduleSource) {
+  const marker = 'export const sourceStatus: SourceStatus[] = '
+  const start = moduleSource.indexOf(marker)
+  if (start < 0) return new Map()
+  const json = balancedJson(moduleSource, start + marker.length)
+  if (!json) return new Map()
+  try {
+    const parsed = JSON.parse(json)
+    return new Map(Array.isArray(parsed) ? parsed.map((source) => [source.name, source]) : [])
+  } catch {
+    return new Map()
+  }
+}
+
+function sourceState({ source, result, previousItems, previousStatus }) {
+  if (result.status === 'fulfilled' && result.value.length) return '已接入'
+  if (hasUsablePreviousSnapshot(source.name, previousItems)) return '同步失败，保留快照'
+  if (previousStatus.get(source.name)?.active) return '同步失败，无可用预览'
+  return '待首次抓取验证'
+}
+
+function hasUsablePreviousSnapshot(sourceName, previousItems) {
+  return previousItems.some((item) => item.source === sourceName && usableImage(item.image))
 }
 
 main().catch((error) => {
