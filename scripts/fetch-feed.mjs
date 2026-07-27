@@ -7,6 +7,9 @@ const root = process.cwd()
 const outputFile = resolve(root, 'src/generated-feed.ts')
 const userAgent = 'Design-Radar/0.1 (+https://github.com/xiyu519/design-radar; public-feed-refresh)'
 const execFileAsync = promisify(execFile)
+const previewQueue = []
+let activePreviewRequests = 0
+const maxConcurrentPreviewRequests = 4
 
 const sourceCategories = {
   'The FWA': '作品库',
@@ -565,29 +568,112 @@ async function fetchCssNectarItems() {
   })
 }
 
+function imageCandidate(url, descriptor = '') {
+  const decodedUrl = decode(url.trim())
+  const descriptorWidth = Number(descriptor.match(/(\d+)w/)?.[1] ?? 0)
+  const pathWidth = Math.max(
+    ...[...decodedUrl.matchAll(/(?:max|width|w)[=\/-](\d{3,5})\b/gi)].map((match) => Number(match[1])),
+    ...[...decodedUrl.matchAll(/-(\d{3,5})x\d{3,5}(?:[.-]|$)/g)].map((match) => Number(match[1])),
+    0,
+  )
+  return { url: decodedUrl, width: Math.max(descriptorWidth, pathWidth) }
+}
+
+function srcsetCandidates(value) {
+  return value.split(',').flatMap((part) => {
+    const [url, descriptor = ''] = part.trim().split(/\s+/, 2)
+    return url ? [imageCandidate(url, descriptor)] : []
+  })
+}
+
 function rssImageCandidates(entry) {
-  const tagUrls = [...entry.matchAll(/<(?:media:content|media:thumbnail|enclosure|image)\b[^>]+\b(?:url|href)=["']([^"']+)["']/gi)]
-    .map((match) => decode(match[1]))
-  const imageUrls = [...entry.matchAll(/<(?:img|source)\b[^>]+\b(?:src|srcset)=["']([^"'\s,]+)["']/gi)]
-    .map((match) => decode(match[1]))
-  return [...new Set([...tagUrls, ...imageUrls])]
+  const candidates = []
+  for (const match of entry.matchAll(/<(?:media:content|media:thumbnail|enclosure|image)\b[^>]+\b(?:url|href)=["']([^"']+)["']/gi)) {
+    candidates.push(imageCandidate(match[1]))
+  }
+  for (const tag of entry.matchAll(/<(?:img|source)\b[^>]*>/gi)) {
+    const srcset = attribute(tag[0], 'srcset')
+    if (srcset) candidates.push(...srcsetCandidates(srcset))
+    const src = attribute(tag[0], 'src')
+    if (src) candidates.push(imageCandidate(src))
+  }
+  return [...new Map(
+    candidates
+      .filter((candidate) => usableImage(candidate.url))
+      .sort((a, b) => b.width - a.width)
+      .map((candidate) => [candidate.url, candidate.url]),
+  ).values()]
 }
 
 function usableImage(url) {
   return url && !/\.(?:mp4|webm|mov)(?:[?#]|$)/i.test(url)
 }
 
+function openGraphImage(html, pageUrl) {
+  const metaTags = html.match(/<meta\b[^>]*>/gi) ?? []
+  for (const tag of metaTags) {
+    const key = attribute(tag, 'property').toLowerCase() || attribute(tag, 'name').toLowerCase()
+    if (key !== 'og:image' && key !== 'twitter:image') continue
+    const image = absoluteUrl(attribute(tag, 'content'), pageUrl)
+    if (usableImage(image)) return image
+  }
+  return ''
+}
+
+async function rssEntryImage(entry, url) {
+  const embeddedImage = rssImageCandidates(entry).find(usableImage) ?? ''
+  if (embeddedImage) return embeddedImage
+
+  return queuePreviewRequest(async () => {
+    try {
+      return openGraphImage(await getPublic(url), url)
+    } catch {
+      return ''
+    }
+  })
+}
+
+function queuePreviewRequest(request) {
+  return new Promise((resolve) => {
+    previewQueue.push({ request, resolve })
+    drainPreviewQueue()
+  })
+}
+
+function drainPreviewQueue() {
+  while (activePreviewRequests < maxConcurrentPreviewRequests && previewQueue.length) {
+    const { request, resolve } = previewQueue.shift()
+    activePreviewRequests += 1
+    request()
+      .then(resolve)
+      .catch(() => resolve(''))
+      .finally(() => {
+        activePreviewRequests -= 1
+        drainPreviewQueue()
+      })
+  }
+}
+
 async function fetchRssItems({ name, feedUrl, sourceUrl, channel, accent }) {
   const rss = await getPublic(feedUrl)
   const entries = rss.match(/<(?:item|entry)(?:\s[^>]*)?>[\s\S]*?<\/(?:item|entry)>/gi) ?? []
-  return entries.slice(0, 8).flatMap((entry, index) => {
+  const parsedEntries = entries.slice(0, 6).flatMap((entry, index) => {
     const title = xmlTag(entry, 'title')
     const linkTag = entry.match(/<link\b[^>]*>/i)?.[0] ?? ''
     const url = xmlTag(entry, 'link') || attribute(linkTag, 'href')
     const published = Date.parse(xmlTag(entry, 'pubDate') || xmlTag(entry, 'published') || xmlTag(entry, 'updated'))
-    const image = rssImageCandidates(entry).find(usableImage) ?? ''
-    if (!title || !url || !image || Number.isNaN(published)) return []
+    if (!title || !url || Number.isNaN(published)) return []
     const date = new Date(published).toISOString().slice(0, 10)
+    return [{ entry, index, title, url, date }]
+  })
+
+  const withImages = await Promise.all(parsedEntries.map(async ({ entry, ...item }) => ({
+    ...item,
+    image: await rssEntryImage(entry, item.url),
+  })))
+
+  return withImages.flatMap(({ index, title, url, date, image }) => {
+    if (!image) return []
     return [{
       id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${encodeURIComponent(url)}`,
       title,
