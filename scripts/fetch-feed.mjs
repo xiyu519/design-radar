@@ -28,6 +28,8 @@ const sourceCategories = {
   Abduzeedo: '设计媒体',
   'Awwwards Blog': '设计媒体',
   Designboom: '设计媒体',
+  Dezeen: '设计媒体',
+  'Yanko Design': '设计媒体',
   "It's Nice That": '设计媒体',
   'Creative Bloq': '设计媒体',
   'UX Collective': 'UX 研究',
@@ -39,6 +41,7 @@ const sourceCategories = {
   'Brand New': '品牌视觉',
   'Design Milk': '品牌视觉',
   Colossal: '品牌视觉',
+  'PRINT Magazine': '品牌视觉',
 }
 
 const sources = [
@@ -253,6 +256,32 @@ const sources = [
     }),
   },
   {
+    name: 'Dezeen',
+    method: '公开 RSS',
+    tone: 'blue',
+    url: 'https://www.dezeen.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Dezeen',
+      feedUrl: 'https://www.dezeen.com/feed/',
+      sourceUrl: 'https://www.dezeen.com/',
+      channel: '灵感文章',
+      accent: '#306f70',
+    }),
+  },
+  {
+    name: 'Yanko Design',
+    method: '公开 RSS',
+    tone: 'coral',
+    url: 'https://www.yankodesign.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'Yanko Design',
+      feedUrl: 'https://www.yankodesign.com/feed/',
+      sourceUrl: 'https://www.yankodesign.com/',
+      channel: '灵感文章',
+      accent: '#d96b51',
+    }),
+  },
+  {
     name: "It's Nice That",
     method: '公开 RSS',
     tone: 'ink',
@@ -315,6 +344,19 @@ const sources = [
       sourceUrl: 'https://www.thisiscolossal.com/',
       channel: '灵感文章',
       accent: '#171716',
+    }),
+  },
+  {
+    name: 'PRINT Magazine',
+    method: '公开 RSS',
+    tone: 'lime',
+    url: 'https://www.printmag.com/',
+    fetchItems: () => fetchRssItems({
+      name: 'PRINT Magazine',
+      feedUrl: 'https://www.printmag.com/feed/',
+      sourceUrl: 'https://www.printmag.com/',
+      channel: '灵感文章',
+      accent: '#809546',
     }),
   },
   {

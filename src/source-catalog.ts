@@ -27,6 +27,8 @@ export const sourceCatalog: Record<string, SourceCatalogEntry> = {
   Abduzeedo: { category: '设计媒体', focus: '视觉、产品与创意趋势', policy: '公开 RSS，原站回跳' },
   'Awwwards Blog': { category: '设计媒体', focus: '数字设计案例与观点', policy: '公开 RSS，原站回跳' },
   Designboom: { category: '设计媒体', focus: '建筑、工业与视觉设计', policy: '公开 RSS，原站回跳' },
+  Dezeen: { category: '设计媒体', focus: '建筑、空间与产品设计', policy: '公开 RSS，原站回跳' },
+  'Yanko Design': { category: '设计媒体', focus: '工业设计与未来产品', policy: '公开 RSS，原站回跳' },
   "It's Nice That": { category: '设计媒体', focus: '全球创意与艺术文化', policy: '公开 RSS，原站回跳' },
   'Creative Bloq': { category: '设计媒体', focus: '创意工具与设计趋势', policy: '公开 RSS，原站回跳' },
   'UX Collective': { category: 'UX 研究', focus: '产品体验与设计方法', policy: '公开 RSS，原站回跳' },
@@ -38,6 +40,7 @@ export const sourceCatalog: Record<string, SourceCatalogEntry> = {
   'Brand New': { category: '品牌视觉', focus: '品牌识别与标志评析', policy: '公开 RSS，原站回跳' },
   'Design Milk': { category: '品牌视觉', focus: '产品、空间与生活方式设计', policy: '公开 RSS，原站回跳' },
   Colossal: { category: '品牌视觉', focus: '艺术、插画与视觉文化', policy: '公开 RSS，原站回跳' },
+  'PRINT Magazine': { category: '品牌视觉', focus: '平面、字体与品牌设计', policy: '公开 RSS，原站回跳' },
 }
 
 export function getSourceProfile(name: string): SourceCatalogEntry {
