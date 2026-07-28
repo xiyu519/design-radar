@@ -4,32 +4,13 @@ import { channels, feedMeta, items, sourceStatus, type Channel, type DesignItem 
 import { getSourceProfile, sourceCategoryFilters, type SourceCategoryFilter } from './source-catalog'
 
 function ItemCard({ item, index }: { item: DesignItem; index: number }) {
-  const [isPreviewing, setIsPreviewing] = useState(false)
-  const [previewFailed, setPreviewFailed] = useState(false)
-
-  const showPreview = isPreviewing && !previewFailed
-
   return (
     <article
       className={`work-item work-item--${item.aspect}`}
       style={{ '--accent': item.accent, '--item-index': index } as CSSProperties}
-      onMouseEnter={() => setIsPreviewing(true)}
-      onMouseLeave={() => setIsPreviewing(false)}
-      onFocus={() => setIsPreviewing(true)}
-      onBlur={() => setIsPreviewing(false)}
     >
       <div className="work-media">
         <img src={item.image} alt="" loading={index > 3 ? 'lazy' : 'eager'} />
-        {showPreview && (
-          <iframe
-            className="live-preview"
-            src={item.url}
-            title={`${item.title} 的原站动态预览`}
-            sandbox="allow-scripts allow-forms allow-popups"
-            tabIndex={-1}
-            onError={() => setPreviewFailed(true)}
-          />
-        )}
         <span className="item-index">{String(index + 1).padStart(2, '0')}</span>
         <a
           className="work-link"
