@@ -10,6 +10,8 @@ const execFileAsync = promisify(execFile)
 const previewQueue = []
 let activePreviewRequests = 0
 const maxConcurrentPreviewRequests = 4
+const itemsPerSource = 10
+const rssEntryScanLimit = 20
 
 const sourceCategories = {
   'The FWA': '作品库',
@@ -597,7 +599,7 @@ async function fetchFwaItems() {
 
   return [...new Map(candidates.map((item) => [item.id, item])).values()]
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 8)
+    .slice(0, itemsPerSource)
 }
 
 async function fetchCssNectarItems() {
@@ -699,7 +701,7 @@ function drainPreviewQueue() {
 async function fetchRssItems({ name, feedUrl, sourceUrl, channel, accent }) {
   const rss = await getPublic(feedUrl)
   const entries = rss.match(/<(?:item|entry)(?:\s[^>]*)?>[\s\S]*?<\/(?:item|entry)>/gi) ?? []
-  const parsedEntries = entries.slice(0, 6).flatMap((entry, index) => {
+  const parsedEntries = entries.slice(0, rssEntryScanLimit).flatMap((entry, index) => {
     const title = xmlTag(entry, 'title')
     const linkTag = entry.match(/<link\b[^>]*>/i)?.[0] ?? ''
     const url = xmlTag(entry, 'link') || attribute(linkTag, 'href')
@@ -728,7 +730,7 @@ async function fetchRssItems({ name, feedUrl, sourceUrl, channel, accent }) {
       accent,
       aspect: index % 3 === 0 ? 'portrait' : 'square',
     }]
-  })
+  }).slice(0, itemsPerSource)
 }
 
 async function fetchCssDesignAwardsItems() {
@@ -762,7 +764,7 @@ async function fetchCssDesignAwardsItems() {
   })
   return [...new Map(entries.map((item) => [item.id, item])).values()]
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 6)
+    .slice(0, itemsPerSource)
 }
 
 async function fetchCssWinnerItems() {
@@ -793,7 +795,7 @@ async function fetchCssWinnerItems() {
   })
   return [...new Map(entries.map((item) => [item.id, item])).values()]
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 6)
+    .slice(0, itemsPerSource)
 }
 
 function previousItemsFrom(moduleSource) {
@@ -828,6 +830,14 @@ async function main() {
   const knownIds = new Set(previousItems.map((item) => item.id))
   const results = await Promise.allSettled(sources.map((source) => source.fetchItems()))
   const fetchedAt = new Date()
+  const sourceItems = sources.map((source, index) => {
+    const result = results[index]
+    if (result.status === 'fulfilled') return result.value.slice(0, itemsPerSource)
+    return previousItems
+      .filter((item) => item.source === source.name && usableImage(item.image))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, itemsPerSource)
+  })
   const statuses = sources.map((source, index) => ({
     name: source.name,
     state: sourceState({ source, result: results[index], previousItems, previousStatus }),
@@ -839,23 +849,17 @@ async function main() {
     lastSuccessAt: results[index].status === 'fulfilled' && results[index].value.length
       ? fetchedAt.toISOString()
       : previousStatus.get(source.name)?.lastSuccessAt ?? null,
-    active: (results[index].status === 'fulfilled' && results[index].value.length > 0)
-      || hasUsablePreviousSnapshot(source.name, previousItems),
+    active: sourceItems[index].length > 0,
   }))
   results.forEach((result, index) => {
     if (result.status === 'rejected') console.warn(`${sources[index].name}: ${result.reason.message}`)
     if (result.status === 'fulfilled' && !result.value.length) console.warn(`${sources[index].name}: no usable public entries found`)
   })
-  const freshItems = results.flatMap((result, index) => {
-    if (result.status === 'fulfilled') return result.value
-    // Keep the last verified records for an individual source if its public page is temporarily unavailable.
-    return previousItems.filter((item) => item.source === sources[index].name && usableImage(item.image))
-  })
+  const freshItems = sourceItems.flatMap((items) => items)
   if (!freshItems.length) throw new Error('No approved source returned usable items; the existing snapshot was kept.')
 
   const items = freshItems
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 24)
     .map((item) => ({ ...item, dateLabel: dateLabel(item.date), fresh: !knownIds.has(item.id) }))
   const newItemCount = items.filter((item) => item.fresh).length
   await writeFile(outputFile, renderModule({ items, statuses, fetchedAt, newItemCount }))

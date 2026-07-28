@@ -38,7 +38,7 @@ npm run fetch:feed
 npm run build
 ```
 
-`npm run fetch:feed` 最多写入 24 条近期内容。同步器使用明确的 User-Agent、20 秒超时和按来源回退的失败策略；若所有来源都无法生成可用内容，保留原有快照并以失败退出。
+`npm run fetch:feed` 对每个已展示来源最多写入 10 条近期内容；若公开入口不足 10 条有效卡片，则保留实际可用数量。同步器使用明确的 User-Agent、20 秒超时和按来源回退的失败策略；若所有来源都无法生成可用内容，保留原有快照并以失败退出。
 
 `.github/workflows/refresh-feed.yml` 会在每日 UTC 01:17 触发刷新，也可从 Actions 页面手动运行。`ci.yml` 会在每次 push 和 pull request 中执行可复现安装与生产构建。
 
