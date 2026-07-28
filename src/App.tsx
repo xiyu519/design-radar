@@ -4,19 +4,42 @@ import { channels, feedMeta, items, sourceStatus, type Channel, type DesignItem 
 import { getSourceProfile, sourceCategoryFilters, type SourceCategoryFilter } from './source-catalog'
 
 function ItemCard({ item, index }: { item: DesignItem; index: number }) {
+  const [isPreviewing, setIsPreviewing] = useState(false)
+  const [previewFailed, setPreviewFailed] = useState(false)
+
+  const showPreview = isPreviewing && !previewFailed
+
   return (
-    <a
+    <article
       className={`work-item work-item--${item.aspect}`}
-      href={item.url}
-      target="_blank"
-      rel="noreferrer"
       style={{ '--accent': item.accent, '--item-index': index } as CSSProperties}
-      aria-label={`在 ${item.source} 打开 ${item.title}`}
+      onMouseEnter={() => setIsPreviewing(true)}
+      onMouseLeave={() => setIsPreviewing(false)}
+      onFocus={() => setIsPreviewing(true)}
+      onBlur={() => setIsPreviewing(false)}
     >
       <div className="work-media">
         <img src={item.image} alt="" loading={index > 3 ? 'lazy' : 'eager'} />
+        {showPreview && (
+          <iframe
+            className="live-preview"
+            src={item.url}
+            title={`${item.title} 的原站动态预览`}
+            sandbox="allow-scripts allow-forms allow-popups"
+            tabIndex={-1}
+            onError={() => setPreviewFailed(true)}
+          />
+        )}
         <span className="item-index">{String(index + 1).padStart(2, '0')}</span>
-        <span className="open-icon"><ArrowUpRight size={18} strokeWidth={1.6} /></span>
+        <a
+          className="work-link"
+          href={item.url}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`在 ${item.source} 打开 ${item.title}`}
+        >
+          <span className="open-icon"><ArrowUpRight size={18} strokeWidth={1.6} /></span>
+        </a>
       </div>
       <div className="work-meta">
         <div>
@@ -25,7 +48,7 @@ function ItemCard({ item, index }: { item: DesignItem; index: number }) {
         </div>
         <time dateTime={item.date}>{item.dateLabel}</time>
       </div>
-    </a>
+    </article>
   )
 }
 
